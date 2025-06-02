@@ -43,6 +43,16 @@ const Index = () => {
     setSelectedDate(null);
   };
 
+  const handleAddMultipleEvents = (eventList: Omit<Event, 'id'>[]) => {
+    const newEvents: Event[] = eventList.map((event, index) => ({
+      ...event,
+      id: (Date.now() + index).toString()
+    }));
+    setEvents(prev => [...prev, ...newEvents]);
+    setIsModalOpen(false);
+    setSelectedDate(null);
+  };
+
   const handleEditEvent = (event: Event) => {
     setEvents(prev => prev.map(e => e.id === event.id ? event : e));
     setIsModalOpen(false);
@@ -134,6 +144,7 @@ const Index = () => {
           setEditingEvent(null);
         }}
         onSave={editingEvent ? handleEditEvent : handleAddEvent}
+        onSaveMultiple={handleAddMultipleEvents}
         onDelete={handleDeleteEvent}
         selectedDate={selectedDate}
         editingEvent={editingEvent}

@@ -6,12 +6,13 @@ import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Textarea } from '../ui/textarea';
 import { Event, EventType, eventTypeConfigs } from '../../types/Event';
-import { Calendar, Clock, Trash2 } from 'lucide-react';
+import { Calendar, Clock, Trash2, CalendarRange } from 'lucide-react';
 
 interface AddEventModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSave: (event: Event | Omit<Event, 'id'>) => void;
+  onSaveMultiple?: (events: Omit<Event, 'id'>[]) => void;
   onDelete?: (eventId: string) => void;
   selectedDate: Date | null;
   editingEvent?: Event | null;
@@ -21,6 +22,7 @@ export const AddEventModal: React.FC<AddEventModalProps> = ({
   isOpen,
   onClose,
   onSave,
+  onSaveMultiple,
   onDelete,
   selectedDate,
   editingEvent
@@ -30,6 +32,8 @@ export const AddEventModal: React.FC<AddEventModalProps> = ({
   const [startTime, setStartTime] = useState('09:00');
   const [endTime, setEndTime] = useState('17:30');
   const [comment, setComment] = useState('');
+  const [isRangeMode, setIsRangeMode] = useState(false);
+  const [endDate, setEndDate] = useState('');
 
   useEffect(() => {
     if (isOpen) {
@@ -39,30 +43,69 @@ export const AddEventModal: React.FC<AddEventModalProps> = ({
         setStartTime(editingEvent.startTime);
         setEndTime(editingEvent.endTime);
         setComment(editingEvent.comment || '');
+        setIsRangeMode(false);
+        setEndDate('');
       } else if (selectedDate) {
         setDate(selectedDate.toISOString().split('T')[0]);
         setEventType('telework');
         setStartTime('09:00');
         setEndTime('17:30');
         setComment('');
+        setIsRangeMode(false);
+        setEndDate('');
       }
     }
   }, [isOpen, editingEvent, selectedDate]);
 
+  const generateDateRange = (startDate: string, endDate: string): Date[] => {
+    const dates: Date[] = [];
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    
+    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+      dates.push(new Date(d));
+    }
+    
+    return dates;
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    const eventData = {
-      date: new Date(date),
-      type: eventType,
-      startTime,
-      endTime,
-      comment: comment.trim() || undefined
-    };
-
     if (editingEvent) {
-      onSave({ ...eventData, id: editingEvent.id });
+      // Mode édition - un seul événement
+      const eventData = {
+        date: new Date(date),
+        type: eventType,
+        startTime,
+        endTime,
+        comment: comment.trim() || undefined,
+        id: editingEvent.id
+      };
+      onSave(eventData);
+      return;
+    }
+
+    if (isRangeMode && endDate && onSaveMultiple) {
+      // Mode plage de dates
+      const dateRange = generateDateRange(date, endDate);
+      const events = dateRange.map(dateObj => ({
+        date: dateObj,
+        type: eventType,
+        startTime,
+        endTime,
+        comment: comment.trim() || undefined
+      }));
+      onSaveMultiple(events);
     } else {
+      // Mode date unique
+      const eventData = {
+        date: new Date(date),
+        type: eventType,
+        startTime,
+        endTime,
+        comment: comment.trim() || undefined
+      };
       onSave(eventData);
     }
   };
@@ -88,17 +131,84 @@ export const AddEventModal: React.FC<AddEventModalProps> = ({
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Date */}
-          <div className="space-y-2">
-            <Label htmlFor="date">Date</Label>
-            <Input
-              id="date"
-              type="date"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-              required
-              className="w-full"
-            />
+          {/* Mode de sélection - uniquement en mode ajout */}
+          {!isEditing && (
+            <div className="space-y-3">
+              <Label>Mode de sélection</Label>
+              <div className="flex space-x-3">
+                <label
+                  className={`
+                    flex items-center p-3 border-2 rounded-lg cursor-pointer transition-all flex-1
+                    ${!isRangeMode 
+                      ? 'bg-blue-100 border-blue-300 text-blue-700' 
+                      : 'border-slate-200 hover:border-slate-300 bg-white text-slate-700'
+                    }
+                  `}
+                >
+                  <input
+                    type="radio"
+                    name="selectionMode"
+                    checked={!isRangeMode}
+                    onChange={() => setIsRangeMode(false)}
+                    className="sr-only"
+                  />
+                  <Calendar className="w-4 h-4 mr-2" />
+                  <span className="font-medium text-sm">Date unique</span>
+                </label>
+                
+                <label
+                  className={`
+                    flex items-center p-3 border-2 rounded-lg cursor-pointer transition-all flex-1
+                    ${isRangeMode 
+                      ? 'bg-blue-100 border-blue-300 text-blue-700' 
+                      : 'border-slate-200 hover:border-slate-300 bg-white text-slate-700'
+                    }
+                  `}
+                >
+                  <input
+                    type="radio"
+                    name="selectionMode"
+                    checked={isRangeMode}
+                    onChange={() => setIsRangeMode(true)}
+                    className="sr-only"
+                  />
+                  <CalendarRange className="w-4 h-4 mr-2" />
+                  <span className="font-medium text-sm">Plage de dates</span>
+                </label>
+              </div>
+            </div>
+          )}
+
+          {/* Dates */}
+          <div className={isRangeMode ? 'grid grid-cols-2 gap-4' : 'space-y-2'}>
+            <div className="space-y-2">
+              <Label htmlFor="date">
+                {isRangeMode ? 'Date de début' : 'Date'}
+              </Label>
+              <Input
+                id="date"
+                type="date"
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+                required
+                className="w-full"
+              />
+            </div>
+            
+            {isRangeMode && (
+              <div className="space-y-2">
+                <Label htmlFor="endDate">Date de fin</Label>
+                <Input
+                  id="endDate"
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  min={date}
+                  required
+                  className="w-full"
+                />
+              </div>
+            )}
           </div>
 
           {/* Type d'événement */}
@@ -178,6 +288,18 @@ export const AddEventModal: React.FC<AddEventModalProps> = ({
             />
           </div>
 
+          {/* Prévisualisation de la plage */}
+          {isRangeMode && date && endDate && (
+            <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <p className="text-sm text-blue-700 font-medium">
+                Plage sélectionnée : {generateDateRange(date, endDate).length} jour(s)
+              </p>
+              <p className="text-xs text-blue-600 mt-1">
+                Du {new Date(date).toLocaleDateString('fr-FR')} au {new Date(endDate).toLocaleDateString('fr-FR')}
+              </p>
+            </div>
+          )}
+
           {/* Actions */}
           <div className="flex justify-between pt-4">
             <div>
@@ -206,7 +328,7 @@ export const AddEventModal: React.FC<AddEventModalProps> = ({
                 type="submit"
                 className="bg-blue-600 hover:bg-blue-700"
               >
-                {isEditing ? 'Mettre à jour' : 'Ajouter'}
+                {isEditing ? 'Mettre à jour' : isRangeMode ? 'Ajouter la plage' : 'Ajouter'}
               </Button>
             </div>
           </div>
