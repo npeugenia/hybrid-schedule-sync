@@ -1,18 +1,19 @@
-
 import React, { useState, useEffect } from 'react';
 import { CalendarView } from '../components/calendar/CalendarView';
 import { Dashboard } from '../components/dashboard/Dashboard';
 import { AddEventModal } from '../components/modals/AddEventModal';
-import { Button } from '../components/ui/button';
-import { Plus } from 'lucide-react';
-import { Event, EventType } from '../types/Event';
+import { MainLayout } from '../components/layout/MainLayout';
+import { StatsPanel } from '../components/panels/StatsPanel';
+import { QuickActionsPanel } from '../components/panels/QuickActionsPanel';
+import { Event } from '../types/Event';
+import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
 
 const Index = () => {
   const [events, setEvents] = useState<Event[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [editingEvent, setEditingEvent] = useState<Event | null>(null);
-  const [currentView, setCurrentView] = useState<'calendar' | 'dashboard'>('calendar');
+  const [currentView, setCurrentView] = useState<'calendar' | 'dashboard'>('dashboard');
 
   // Charger les événements depuis localStorage
   useEffect(() => {
@@ -78,62 +79,55 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b border-slate-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-4">
-              <h1 className="text-2xl font-bold text-slate-900">
-                WorkFlow Hybrid
-              </h1>
-              <div className="hidden sm:flex bg-slate-100 rounded-lg p-1">
-                <button
-                  onClick={() => setCurrentView('calendar')}
-                  className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
-                    currentView === 'calendar'
-                      ? 'bg-white text-slate-900 shadow-sm'
-                      : 'text-slate-600 hover:text-slate-900'
-                  }`}
-                >
-                  Calendrier
-                </button>
-                <button
-                  onClick={() => setCurrentView('dashboard')}
-                  className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
-                    currentView === 'dashboard'
-                      ? 'bg-white text-slate-900 shadow-sm'
-                      : 'text-slate-600 hover:text-slate-900'
-                  }`}
-                >
-                  Tableau de bord
-                </button>
+    <MainLayout
+      currentView={currentView}
+      setCurrentView={setCurrentView}
+      onAddEvent={() => openAddModal()}
+    >
+      <div className="h-full">
+        {currentView === 'dashboard' ? (
+          <ResizablePanelGroup direction="horizontal" className="h-full">
+            {/* Panel principal - Tableau de bord */}
+            <ResizablePanel defaultSize={65} minSize={50}>
+              <div className="h-full pr-3">
+                <Dashboard events={events} />
               </div>
-            </div>
+            </ResizablePanel>
             
-            <Button
-              onClick={() => openAddModal()}
-              className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg transition-all duration-200 hover:shadow-xl"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Ajouter un jour
-            </Button>
-          </div>
-        </div>
-      </header>
-
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {currentView === 'calendar' ? (
-          <CalendarView
-            events={events}
-            onDateClick={openAddModal}
-            onEventClick={openEditModal}
-          />
+            <ResizableHandle withHandle />
+            
+            {/* Panel latéral - Statistiques et actions */}
+            <ResizablePanel defaultSize={35} minSize={25}>
+              <div className="h-full pl-3 space-y-6">
+                <StatsPanel events={events} />
+                <QuickActionsPanel onAddEvent={() => openAddModal()} />
+              </div>
+            </ResizablePanel>
+          </ResizablePanelGroup>
         ) : (
-          <Dashboard events={events} />
+          <ResizablePanelGroup direction="horizontal" className="h-full">
+            {/* Panel principal - Calendrier */}
+            <ResizablePanel defaultSize={75} minSize={60}>
+              <div className="h-full pr-3">
+                <CalendarView
+                  events={events}
+                  onDateClick={openAddModal}
+                  onEventClick={openEditModal}
+                />
+              </div>
+            </ResizablePanel>
+            
+            <ResizableHandle withHandle />
+            
+            {/* Panel latéral - Statistiques */}
+            <ResizablePanel defaultSize={25} minSize={20}>
+              <div className="h-full pl-3">
+                <StatsPanel events={events} />
+              </div>
+            </ResizablePanel>
+          </ResizablePanelGroup>
         )}
-      </main>
+      </div>
 
       {/* Modal */}
       <AddEventModal
@@ -149,7 +143,7 @@ const Index = () => {
         selectedDate={selectedDate}
         editingEvent={editingEvent}
       />
-    </div>
+    </MainLayout>
   );
 };
 
