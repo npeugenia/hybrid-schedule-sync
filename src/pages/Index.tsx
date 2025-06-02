@@ -84,31 +84,31 @@ const Index = () => {
       setCurrentView={setCurrentView}
       onAddEvent={() => openAddModal()}
     >
-      <div className="h-full">
+      <div className="h-full min-h-[calc(100vh-8rem)]">
         {currentView === 'dashboard' ? (
-          <ResizablePanelGroup direction="horizontal" className="h-full">
+          <ResizablePanelGroup direction="horizontal" className="h-full rounded-xl overflow-hidden">
             {/* Panel principal - Tableau de bord */}
-            <ResizablePanel defaultSize={65} minSize={50}>
-              <div className="h-full pr-3">
+            <ResizablePanel defaultSize={65} minSize={50} className="bg-white rounded-l-xl">
+              <div className="h-full p-6 custom-scrollbar overflow-auto">
                 <Dashboard events={events} />
               </div>
             </ResizablePanel>
             
-            <ResizableHandle withHandle />
+            <ResizableHandle withHandle className="bg-slate-200/60 hover:bg-slate-300/60 transition-colors w-1" />
             
             {/* Panel latéral - Statistiques et actions */}
-            <ResizablePanel defaultSize={35} minSize={25}>
-              <div className="h-full pl-3 space-y-6">
+            <ResizablePanel defaultSize={35} minSize={25} className="bg-slate-50/50 rounded-r-xl">
+              <div className="h-full p-6 space-y-8 custom-scrollbar overflow-auto">
                 <StatsPanel events={events} />
                 <QuickActionsPanel onAddEvent={() => openAddModal()} />
               </div>
             </ResizablePanel>
           </ResizablePanelGroup>
         ) : (
-          <ResizablePanelGroup direction="horizontal" className="h-full">
+          <ResizablePanelGroup direction="horizontal" className="h-full rounded-xl overflow-hidden">
             {/* Panel principal - Calendrier */}
-            <ResizablePanel defaultSize={75} minSize={60}>
-              <div className="h-full pr-3">
+            <ResizablePanel defaultSize={75} minSize={60} className="bg-white rounded-l-xl">
+              <div className="h-full p-6 custom-scrollbar overflow-auto">
                 <CalendarView
                   events={events}
                   onDateClick={openAddModal}
@@ -117,11 +117,11 @@ const Index = () => {
               </div>
             </ResizablePanel>
             
-            <ResizableHandle withHandle />
+            <ResizableHandle withHandle className="bg-slate-200/60 hover:bg-slate-300/60 transition-colors w-1" />
             
             {/* Panel latéral - Statistiques */}
-            <ResizablePanel defaultSize={25} minSize={20}>
-              <div className="h-full pl-3">
+            <ResizablePanel defaultSize={25} minSize={20} className="bg-slate-50/50 rounded-r-xl">
+              <div className="h-full p-6 custom-scrollbar overflow-auto">
                 <StatsPanel events={events} />
               </div>
             </ResizablePanel>
