@@ -67,9 +67,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ events }) => {
   const getUpcomingWeek = () => {
     const startOfWeek = new Date(currentDate);
     const day = startOfWeek.getDay();
-    // Calculer le lundi de la semaine courante
-    const daysToMonday = day === 0 ? -6 : 1 - day; // Si dimanche (0), aller -6 jours, sinon aller au lundi
-    startOfWeek.setDate(startOfWeek.getDate() + daysToMonday);
+    const diff = startOfWeek.getDate() - day + (day === 0 ? -6 : 1); // Lundi = début de semaine
+    startOfWeek.setDate(diff);
 
     const weekEvents = [];
     for (let i = 0; i < 7; i++) {
