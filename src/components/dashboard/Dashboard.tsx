@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Event, EventType, eventTypeConfigs } from '../../types/Event';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
@@ -43,7 +42,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ events }) => {
         const start = new Date(`2000-01-01 ${event.startTime}`);
         const end = new Date(`2000-01-01 ${event.endTime}`);
         const diffMs = end.getTime() - start.getTime();
-        totalMinutes += diffMs / (1000 * 60);
+        const dayMinutes = diffMs / (1000 * 60);
+        
+        // Déduire 1h30 (90 minutes) de pause déjeuner par jour de travail
+        const workMinutes = dayMinutes - 90;
+        totalMinutes += Math.max(workMinutes, 0); // S'assurer que le résultat n'est pas négatif
       }
     });
 
@@ -140,7 +143,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ events }) => {
           <CardContent>
             <div className="text-2xl font-bold text-slate-900">{totalHours}h</div>
             <p className="text-xs text-slate-500 mt-1">
-              Temps de travail planifié
+              Temps de travail effectif (pause déjeuner déduite)
             </p>
           </CardContent>
         </Card>
