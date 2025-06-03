@@ -6,7 +6,7 @@ import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Textarea } from '../ui/textarea';
 import { Event, EventType, eventTypeConfigs } from '../../types/Event';
-import { Calendar, Clock, Trash2, CalendarRange } from 'lucide-react';
+import { Calendar, Clock, Trash2, CalendarRange, CalendarDays, ArrowRight } from 'lucide-react';
 
 interface AddEventModalProps {
   isOpen: boolean;
@@ -116,11 +116,44 @@ export const AddEventModal: React.FC<AddEventModalProps> = ({
     }
   };
 
+  // Calcul automatique de la date de fin suggérée (fin de semaine)
+  const getSuggestedEndDate = () => {
+    if (!date) return '';
+    const startDate = new Date(date);
+    const dayOfWeek = startDate.getDay();
+    const daysUntilFriday = dayOfWeek === 0 ? 5 : (5 - dayOfWeek + 7) % 7;
+    const suggestedEnd = new Date(startDate);
+    suggestedEnd.setDate(startDate.getDate() + daysUntilFriday);
+    return suggestedEnd.toISOString().split('T')[0];
+  };
+
+  const formatDateRange = () => {
+    if (!date || !endDate) return null;
+    const start = new Date(date);
+    const end = new Date(endDate);
+    const dayCount = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+    
+    return {
+      dayCount,
+      startFormatted: start.toLocaleDateString('fr-FR', { 
+        weekday: 'short', 
+        day: 'numeric', 
+        month: 'short' 
+      }),
+      endFormatted: end.toLocaleDateString('fr-FR', { 
+        weekday: 'short', 
+        day: 'numeric', 
+        month: 'short' 
+      })
+    };
+  };
+
   const isEditing = !!editingEvent;
+  const rangeInfo = formatDateRange();
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle className="flex items-center space-x-2">
             <Calendar className="w-5 h-5 text-blue-600" />
@@ -133,87 +166,144 @@ export const AddEventModal: React.FC<AddEventModalProps> = ({
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Mode de sélection - uniquement en mode ajout */}
           {!isEditing && (
-            <div className="space-y-3">
-              <Label>Mode de sélection</Label>
-              <div className="flex space-x-3">
-                <label
+            <div className="space-y-4">
+              <Label className="text-sm font-medium text-slate-700">Mode de sélection</Label>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setIsRangeMode(false)}
                   className={`
-                    flex items-center p-3 border-2 rounded-lg cursor-pointer transition-all flex-1
+                    flex items-center justify-center p-4 border-2 rounded-xl cursor-pointer transition-all duration-200
                     ${!isRangeMode 
-                      ? 'bg-blue-100 border-blue-300 text-blue-700' 
-                      : 'border-slate-200 hover:border-slate-300 bg-white text-slate-700'
+                      ? 'bg-blue-50 border-blue-300 text-blue-700 shadow-sm' 
+                      : 'border-slate-200 hover:border-slate-300 bg-white text-slate-600 hover:bg-slate-50'
                     }
                   `}
                 >
-                  <input
-                    type="radio"
-                    name="selectionMode"
-                    checked={!isRangeMode}
-                    onChange={() => setIsRangeMode(false)}
-                    className="sr-only"
-                  />
-                  <Calendar className="w-4 h-4 mr-2" />
-                  <span className="font-medium text-sm">Date unique</span>
-                </label>
+                  <CalendarDays className="w-5 h-5 mr-3" />
+                  <div className="text-left">
+                    <div className="font-medium text-sm">Date unique</div>
+                    <div className="text-xs opacity-75">Un jour spécifique</div>
+                  </div>
+                </button>
                 
-                <label
+                <button
+                  type="button"
+                  onClick={() => setIsRangeMode(true)}
                   className={`
-                    flex items-center p-3 border-2 rounded-lg cursor-pointer transition-all flex-1
+                    flex items-center justify-center p-4 border-2 rounded-xl cursor-pointer transition-all duration-200
                     ${isRangeMode 
-                      ? 'bg-blue-100 border-blue-300 text-blue-700' 
-                      : 'border-slate-200 hover:border-slate-300 bg-white text-slate-700'
+                      ? 'bg-blue-50 border-blue-300 text-blue-700 shadow-sm' 
+                      : 'border-slate-200 hover:border-slate-300 bg-white text-slate-600 hover:bg-slate-50'
                     }
                   `}
                 >
-                  <input
-                    type="radio"
-                    name="selectionMode"
-                    checked={isRangeMode}
-                    onChange={() => setIsRangeMode(true)}
-                    className="sr-only"
-                  />
-                  <CalendarRange className="w-4 h-4 mr-2" />
-                  <span className="font-medium text-sm">Plage de dates</span>
-                </label>
+                  <CalendarRange className="w-5 h-5 mr-3" />
+                  <div className="text-left">
+                    <div className="font-medium text-sm">Plage de dates</div>
+                    <div className="text-xs opacity-75">Plusieurs jours</div>
+                  </div>
+                </button>
               </div>
             </div>
           )}
 
-          {/* Dates */}
-          <div className={isRangeMode ? 'grid grid-cols-2 gap-4' : 'space-y-2'}>
-            <div className="space-y-2">
-              <Label htmlFor="date">
-                {isRangeMode ? 'Date de début' : 'Date'}
+          {/* Sélection des dates */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <Label className="text-sm font-medium text-slate-700">
+                {isRangeMode ? 'Période' : 'Date'}
               </Label>
+              {isRangeMode && rangeInfo && (
+                <span className="text-xs text-blue-600 font-medium">
+                  {rangeInfo.dayCount} jour{rangeInfo.dayCount > 1 ? 's' : ''}
+                </span>
+              )}
+            </div>
+            
+            {isRangeMode ? (
+              <div className="space-y-4">
+                {/* Date de début */}
+                <div className="space-y-2">
+                  <Label htmlFor="date" className="text-xs text-slate-600">Date de début</Label>
+                  <Input
+                    id="date"
+                    type="date"
+                    value={date}
+                    onChange={(e) => {
+                      setDate(e.target.value);
+                      // Auto-suggérer la date de fin si elle n'est pas définie
+                      if (!endDate && e.target.value) {
+                        setEndDate(getSuggestedEndDate());
+                      }
+                    }}
+                    required
+                    className="w-full"
+                  />
+                </div>
+
+                {/* Flèche indicative */}
+                <div className="flex items-center justify-center">
+                  <ArrowRight className="w-4 h-4 text-slate-400" />
+                </div>
+
+                {/* Date de fin */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="endDate" className="text-xs text-slate-600">Date de fin</Label>
+                    {date && (
+                      <button
+                        type="button"
+                        onClick={() => setEndDate(getSuggestedEndDate())}
+                        className="text-xs text-blue-600 hover:text-blue-700 font-medium"
+                      >
+                        Fin de semaine
+                      </button>
+                    )}
+                  </div>
+                  <Input
+                    id="endDate"
+                    type="date"
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                    min={date}
+                    required
+                    className="w-full"
+                  />
+                </div>
+
+                {/* Aperçu de la plage */}
+                {rangeInfo && (
+                  <div className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-blue-900">
+                          {rangeInfo.startFormatted} → {rangeInfo.endFormatted}
+                        </p>
+                        <p className="text-xs text-blue-700 mt-1">
+                          {rangeInfo.dayCount} jour{rangeInfo.dayCount > 1 ? 's' : ''} sélectionné{rangeInfo.dayCount > 1 ? 's' : ''}
+                        </p>
+                      </div>
+                      <CalendarRange className="w-5 h-5 text-blue-600" />
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
               <Input
-                id="date"
+                id="single-date"
                 type="date"
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
                 required
                 className="w-full"
               />
-            </div>
-            
-            {isRangeMode && (
-              <div className="space-y-2">
-                <Label htmlFor="endDate">Date de fin</Label>
-                <Input
-                  id="endDate"
-                  type="date"
-                  value={endDate}
-                  onChange={(e) => setEndDate(e.target.value)}
-                  min={date}
-                  required
-                  className="w-full"
-                />
-              </div>
             )}
           </div>
 
           {/* Type d'événement */}
           <div className="space-y-3">
-            <Label>Type de journée</Label>
+            <Label className="text-sm font-medium text-slate-700">Type de journée</Label>
             <div className="grid grid-cols-2 gap-3">
               {Object.entries(eventTypeConfigs).map(([type, config]) => (
                 <label
@@ -287,18 +377,6 @@ export const AddEventModal: React.FC<AddEventModalProps> = ({
               className="resize-none"
             />
           </div>
-
-          {/* Prévisualisation de la plage */}
-          {isRangeMode && date && endDate && (
-            <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
-              <p className="text-sm text-blue-700 font-medium">
-                Plage sélectionnée : {generateDateRange(date, endDate).length} jour(s)
-              </p>
-              <p className="text-xs text-blue-600 mt-1">
-                Du {new Date(date).toLocaleDateString('fr-FR')} au {new Date(endDate).toLocaleDateString('fr-FR')}
-              </p>
-            </div>
-          )}
 
           {/* Actions */}
           <div className="flex justify-between pt-4">
